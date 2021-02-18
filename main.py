@@ -1,7 +1,5 @@
-import pandas as pd
-from models import LogisticRegression
+from models import LogisticRegression, SVMClassifier
 from utils import read_data, export_predictions
-import numpy as np
 
 X_train_paths = ['data/Xtr0_mat100.csv', 'data/Xtr1_mat100.csv', 'data/Xtr2_mat100.csv']
 X_test_paths = ['data/Xte0_mat100.csv', 'data/Xte1_mat100.csv', 'data/Xte2_mat100.csv']
@@ -26,26 +24,10 @@ print('Validation Accuracy: ', (y_pred == y_val).mean())
 
 export_predictions(X_test, model=clf, filename='outputs/LogRegPred.csv')
 
-"""
-from sklearn.svm import SVC
+gamma = X_train.shape[1]/2
+clf = SVMClassifier(gamma=gamma)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_val)
+print('Validation Accuracy: ', (y_pred == y_val).mean())
 
-clf = SVC(C=10, kernel='linear')
-
-clf.fit(X_train, y_train['Bound'])
-y_pred = clf.predict(X_test)
-
-(y_pred == y_test['Bound']).mean()
-
-
-from sklearn.ensemble import RandomForestClassifier
-clf = RandomForestClassifier()
-
-clf.fit(X_train, y_train['Bound'])
-y_pred = clf.predict(X_test)
-(y_pred == y_test['Bound']).mean()
-
-from sklearn.linear_model import LogisticRegressionCV
-clf = LogisticRegressionCV(Cs=5, cv=4)
-clf.fit(X_train, y_train['Bound'])
-y_pred = clf.predict(X_test)
-(y_pred == y_test['Bound']).mean()"""
+export_predictions(X_test, model=clf, filename='outputs/SVMGauss.csv')

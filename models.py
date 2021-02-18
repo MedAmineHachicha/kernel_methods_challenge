@@ -1,5 +1,6 @@
 import numpy as np
-
+import cvxopt
+from tqdm import tqdm
 
 class LogisticRegression():
 
@@ -50,3 +51,60 @@ class LogisticRegression():
     def get_accuracy_score(self, X, y):
         pred_labels = self.predict(X=X)
         return (pred_labels==y).mean()
+
+
+class SVMClassifier():
+
+    def __init__(self, C=1, kernel='rbf', gamma=0.1):
+        self.C = C
+        self.kernel = kernel
+        if self.kernel == 'rbf':
+            self.f_kernel = self.GRBF_kernel
+        self.gamma = gamma
+
+    def GRBF_kernel(self, x1, x2, gamma):
+        return np.exp(-np.linalg.norm(x1-x2) * gamma)
+
+    def fit(self, X, y, transform_y=True):
+        y = y.copy()
+        if transform_y:
+            y = y * 2 - 1
+
+        n, m = X.shape
+
+        # Compute the Gram matrix
+        K = np.zeros((n, n))
+        for i in tqdm(range(n)):
+            for j in range(n):
+                K[i, j] = self.f_kernel(X[i], X[j], gamma=self.gamma)
+
+        # construct for solver
+        P = cvxopt.matrix(np.outer(y, y) * K)
+        q = cvxopt.matrix(np.ones(n) * -1)
+        A = cvxopt.matrix(y, (1, n))
+        b = cvxopt.matrix(0.0)
+        if self.C is None:
+            G = cvxopt.matrix(np.diag(np.ones(n) * -1))
+            h = cvxopt.matrix(np.zeros(n))
+        else:
+            G = cvxopt.matrix(np.vstack((np.diag(np.ones(n) * -1), np.identity(n))))
+            h = cvxopt.matrix(np.hstack((np.zeros(n), np.ones(n) * self.C)))
+        # solve QP problem
+        solution = cvxopt.solvers.qp(P, q, G, h, A, b)
+        # Lagrange multipliers
+        LagM = np.ravel(solution['x'])
+        # Get support vectors
+        self.SuppVec_indices = LagM > 1e-5
+        self.supportVectors = X[self.SuppVec_indices]
+        self.supportY = y[self.SuppVec_indices] * LagM[self.SuppVec_indices]
+
+    def predict(self, X):
+        y_pred = np.zeros(X.shape[0])
+        for i in tqdm(range(len(y_pred))):
+            s = 0
+            x = X[i]
+            for k in range(len(self.supportVectors)):
+                s += self.f_kernel(x, self.supportVectors[k], gamma=self.gamma) * self.supportY[k]
+            y_pred[i] = (s > 0) * 1
+
+        return y_pred
