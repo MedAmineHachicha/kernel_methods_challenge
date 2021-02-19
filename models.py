@@ -113,7 +113,7 @@ class SVMClassifier():
         return y_pred
     
     
- class WKRR():
+class WKRR():
     """
     Weighted Kernel Ridge Regression
     
