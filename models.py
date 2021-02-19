@@ -79,6 +79,7 @@ class SVMClassifier():
                 K[i, j] = self.f_kernel(X[i], X[j], gamma=self.gamma)
 
         # construct for solver
+        print(K)
         P = cvxopt.matrix(np.outer(y, y) * K)
         q = cvxopt.matrix(np.ones(n) * -1)
         A = cvxopt.matrix(y, (1, n))
