@@ -67,6 +67,21 @@ class SVMClassifier():
 
     def GRBF_kernel(self, x1, x2, gamma):
         return np.exp(-np.linalg.norm(x1-x2) * gamma)
+    
+    #the computation of Gram matrix will be much faster using this
+       
+    def get_kernel_gram_matrix(self,X,sigma):
+        
+        if self.kernel in ['gaussian','rbf']:
+            
+            #Faster computation of the gram matrix with gaussian kernel
+            #st= time.time()
+            pairwise_dists = squareform(pdist(X, 'sqeuclidean'))
+            K = np.exp(-pairwise_dists /(2*np.square(sigma)))
+            #print(time.time()-st)
+            return K
+        
+
 
     def fit(self, X, y, transform_y=True):
         y = y.copy()
@@ -74,12 +89,19 @@ class SVMClassifier():
             y = y * 2 - 1
 
         n, m = X.shape
-
+       
+        #the computation of Gram matrix will be much faster using this
+        K = self.get_kernel_gram_matrix(X,self.gamma)
+        
+        """
         # Compute the Gram matrix
         K = np.zeros((n, n))
         for i in tqdm(range(n)):
             for j in range(n):
-                K[i, j] = self.f_kernel(X[i], X[j], gamma=self.gamma)
+                K[i, j] = self.GRBF_kernel(X[i], X[j], gamma=self.gamma)
+                 
+        """
+        
 
         # construct for solver
         P = cvxopt.matrix(np.outer(y, y) * K)
@@ -101,6 +123,10 @@ class SVMClassifier():
         self.supportVectors = X[self.SuppVec_indices]
         self.supportY = y[self.SuppVec_indices] * LagM[self.SuppVec_indices]
 
+    
+    
+    
+    """
     def predict(self, X):
         y_pred = np.zeros(X.shape[0])
         for i in tqdm(range(len(y_pred))):
@@ -111,6 +137,31 @@ class SVMClassifier():
             y_pred[i] = (s > 0) * 1
 
         return y_pred
+    """
+    def predict_probas(self, X):
+        
+        try:
+            assert self.kernel in ['gaussian','rbf']
+            #compute pairwise (squared euclidean) distances between new samples and support vectors
+            pairwise_dists = cdist(self.supportVectors,X,'sqeuclidean')
+            #gaussian kernel evaluations
+            K_pred = np.exp(-pairwise_dists /(2*np.square(self.gamma)))
+
+            pred_probas = expit(K_pred.T@self.weights) 
+            return pred_probas
+        
+        except:
+            print('Please make sure the used kernel is gaussian.')
+            
+        
+    def predict(self, X):
+        probas = self.predict_probas(X=X)
+        return (probas>0.5).astype(int)
+    
+    def get_accuracy_score(self, X, y):
+        pred_labels = self.predict(X=X)
+        return (pred_labels==y).mean()
+
     
     
 class WKRR():
@@ -141,7 +192,7 @@ class WKRR():
             return K
 
     
-    def fit(self,X,y,penalty,sigma,W=None, eps=1e-6,kernel_precomputed = False):
+    def fit(self,X,y,penalty,W=None, eps=1e-6,kernel_precomputed = False):
         """
         Returns analytical solution of the Weighted Kernel Ridge Regression problem
         """
@@ -151,7 +202,7 @@ class WKRR():
         if kernel_precomputed:
             K = self.K_train
         else:
-            K = self.get_kernel_gram_matrix(X,sigma)
+            K = self.get_kernel_gram_matrix(X,self.sigma)
             self.K_train = K
         
         assert K.shape[0] == y.shape[0]
@@ -183,9 +234,10 @@ class KernelLogisticRegression():
     Kernel Logistic regression
     """
 
-    def __init__(self,kernel='gaussian'):
+    def __init__(self,kernel='gaussian',sigma=1):
         self.weights = None
-        self.kernel = kernel
+        self.kernel = 'kernel'
+        self.sigma = sigma
         self.loss_thresh = 0.001
         self.X_train = None
         
@@ -205,13 +257,13 @@ class KernelLogisticRegression():
             #print(time.time()-st)
             return K
 
-    def fit(self, X, y,penalty,sigma, max_iter=1000, eps=1e-6,kernel='gaussian'):
+    def fit(self, X, y,penalty, max_iter=1000, eps=1e-6):
         """
         Iteratively solve Weighted Kernel Ridge Regression problems
         """
         
         self.X_train = X
-        K = get_kernel_gram_matrix(X,sigma)
+        K = get_kernel_gram_matrix(X,self.sigma)
         self.wkrr.K_train = K
         
         #For training only, transform labels in [1,-1]
@@ -268,7 +320,7 @@ class KernelLogisticRegression():
             #compute pairwise (squared euclidean) distances between new samples and train samples
             pairwise_dists = cdist(self.X_train,X,'sqeuclidean')
             #gaussian kernel evaluations
-            K_pred = np.exp(-pairwise_dists /(2*np.square(sigma)))
+            K_pred = np.exp(-pairwise_dists /(2*np.square(self.sigma)))
 
             pred_probas = expit(K_pred.T@self.weights) 
             return pred_probas
