@@ -182,8 +182,9 @@ class SVMClassifier_optim():
             pairwise_dists = cdist(self.supportVectors, X, 'sqeuclidean')
             # gaussian kernel evaluations
             K_pred = np.exp(-pairwise_dists * self.gamma)
-
-            pred_probas = expit(K_pred.T @ self.weights)
+            
+            #fixed error: due to self.weight instead of self.supportY
+            pred_probas = expit(K_pred.T @ self.supportY)
             return pred_probas
 
         except:
