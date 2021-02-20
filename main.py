@@ -1,5 +1,5 @@
 from models import LogisticRegression, SVMClassifier
-from utils import read_data, export_predictions, read_data_pandas, preprocess_tfidf
+from utils import read_data, export_predictions, read_data_pandas, preprocess_tfidf, preprocess_TDA
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
@@ -77,3 +77,36 @@ print('Validation Accuracy: ', (y_pred == y_val).mean())
 clf = SVMClassifier(gamma=gamma, C=1)
 clf.fit(tfidf, y)
 export_predictions(tfidf_test, model=clf, filename='outputs/SVM_Gauss_tfidf.csv')
+
+
+
+#### TDA kernel : to be tested ####
+
+#!pip install gudhi 
+import gudhi as gd
+import gudhi.representations
+from utils import preprocess_TDA
+
+train_dgms, test_dgms = preprocess_TDA(X_train,X_test)
+print('Train/val split')
+tda_train, tda_val, y_train, y_val = train_test_split(train_dgms, y_train, test_size=0.2, shuffle=True, random_state=111)
+# Definition of pipeline
+pipe = Pipeline([("Separator", gd.representations.DiagramSelector(limit=np.inf, point_type="finite")),
+                 ("Scaler",    gd.representations.DiagramScaler(scalers=[([0,1], MinMaxScaler())])),
+                 ("TDA",       gd.representations.PersistenceImage()),
+                 ("Estimator", SVC())])
+param =    [{"Scaler__use":         [False],
+             "TDA":                 [gd.representations.SlicedWassersteinKernel()], 
+             "TDA__bandwidth":      [0.1, 1.0],
+             "TDA__num_directions": [20],
+             "Estimator":           [SVC(kernel="precomputed", gamma="auto")]},
+           ]
+
+from sklearn.model_selection import GridSearchCV
+
+clf = GridSearchCV(pipe, param, cv=5) #maybe put cv=3 for faster results 
+clf = clf.fit(tda_train, y_train)
+#print(model.best_params_)
+y_pred = clf.predict(tda_val)
+print('Validation Accuracy: ', (y_pred == y_val).mean())
+export_predictions(test_dgms, model=clf, filename='outputs/SVM_TDA_kernel.csv')
