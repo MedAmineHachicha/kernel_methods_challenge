@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
+
 def read_data(paths, delimiter, skip_header):
     data = []
     for path in paths:
@@ -52,4 +53,45 @@ def preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100):
     tfidf_ = scaler.fit_transform(tfidf_)
 
     return tfidf_[:n1], tfidf_[n1:]
+
+
+import gudhi as gd
+import gudhi.representations
+from gudhi import plot_persistence_diagram 
+import tqdm.notebook as tq
+
+
+def preprocess_TDA(X_train,X_test,base2idx = {'A':0,'C':1,'G':2,'T':3},e = np.eye(4)):
+    
+    print('Preprocess training samples : Compute Persistence Diagrams..')
+    train_dgms = compute_persistence_diagrams(X_train['seq'].values)
+    print('Preprocess test samples : Compute Persistence Diagrams..')
+    test_dgms = compute_persistence_diagrams(X_test['seq'].values)
+    return train_dgms, test_dgms
+
+def compute_persistence_diagrams(X):
+    simplices = []
+    for i,seq in tq.tqdm(enumerate(X),total = len(X)):
+        dgm, simplex_tree = seq2pd(seq) #compute persistence diagrams but only use simplices for Sliced Wasserstein Kernel
+        simplices.append(simplex_tree)
+    return simplices
+
+def seq2pd(seq):
+    
+    b = seq2point_cloud(seq)
+    skeleton = gd.RipsComplex(points = b, max_edge_length = 0.8)
+    Rips_simplex_tree_sample = skeleton.create_simplex_tree(max_dimension = 2)
+    #compute persistence diagram for dimensions 0 and 1
+    #but only 1-dimensional features will be used for the kernel
+    dgm = Rips_simplex_tree_sample.persistence()
+    return dgm, Rips_simplex_tree_sample
+
+def seq2point_cloud(seq):
+    b = np.zeros((len(seq),4))
+    for k,base in enumerate(seq):
+        if k==0:
+            b[k] = e[base2idx[base]]
+        else:
+            b[k] = 0.5*(b[k-1]+e[base2idx[base]])
+    return b
 
