@@ -33,7 +33,7 @@ def export_predictions(X, model, filename):
 
 
 def getKmers(sequence, size):
-    return [sequence[x:x + size].lower() for x in range(len(sequence) - size + 1)]
+    return [sequence[x:x + size] for x in range(len(sequence) - size + 1)]
 
 
 def preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100):
