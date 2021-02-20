@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 def read_data(paths, delimiter, skip_header):
@@ -36,19 +36,19 @@ def getKmers(sequence, size):
     return [sequence[x:x + size].lower() for x in range(len(sequence) - size + 1)]
 
 
-def preprocess_tfidf(X_train, X_test):
+def preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100):
     n1 = X_train.shape[0]
     X = pd.concat([X_train, X_test])
-    X['kMers'] = X['seq'].apply(lambda x: getKmers(x, size=6))
+    X['kMers'] = X['seq'].apply(lambda x: getKmers(x, size=window_size))
     X['sentences'] = X['kMers'].apply(lambda x: ' '.join(x))
 
-    vectorizer = TfidfVectorizer(max_df=0.95, min_df=5)
+    vectorizer = TfidfVectorizer(min_df=5)
     tfidf = vectorizer.fit_transform(X['sentences']).toarray()
 
-    pca = PCA(n_components=100)
+    pca = PCA(n_components=pca_components)
     tfidf_ = pca.fit_transform(tfidf)
 
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     tfidf_ = scaler.fit_transform(tfidf_)
 
     return tfidf_[:n1], tfidf_[n1:]

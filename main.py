@@ -3,6 +3,7 @@ from utils import read_data, export_predictions, read_data_pandas, preprocess_tf
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
+import numpy as np
 
 
 X_train_paths = ['data/Xtr0_mat100.csv', 'data/Xtr1_mat100.csv', 'data/Xtr2_mat100.csv']
@@ -29,7 +30,7 @@ export_predictions(X_test, model=clf, filename='outputs/LogRegPred.csv')
 
 gamma = X_train.shape[1]
 clf = SVMClassifier(gamma=gamma, C=0.1)
-clf.fit(X_train[:100], y_train[:100])
+clf.fit(X_train, y_train)
 y_pred = clf.predict(X_val)
 print('Validation Accuracy: ', (y_pred == y_val).mean())
 
@@ -47,36 +48,32 @@ X_test = read_data_pandas(paths=X_test_paths, delimiter=',')
 y_train = read_data_pandas(paths=y_train_paths, delimiter=',')
 y_train = y_train['Bound'].values.astype(float)
 
-tfidf_train, tfidf_test = preprocess_tfidf(X_train, X_test)
+tfidf_train, tfidf_test = preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100)
 tfidf_train, tfidf_val, y_train, y_val = train_test_split(tfidf_train, y_train,
                                                           test_size=0.2, shuffle=True, random_state=111)
 
+
+'''from sklearn.svm import SVC
+clf1 = SVC(gamma='scale', kernel='rbf')
+clf1.fit(tfidf_train, y_train)
+y_pred = clf1.predict(tfidf_val)
+(y_pred == y_val).mean()'''
+
+
 param_grid = {'C':[0.1, 1,10,100],'gamma':[1,0.1,0.001, 'auto', 'scale'], 'kernel':['rbf']}
 grid = GridSearchCV(SVC(),param_grid,refit = True, verbose=2, n_jobs=-1, scoring='accuracy', cv=4)
-grid.fit(tfidf_train,y_train['Bound'])
+grid.fit(tfidf_train,y_train)
 
 best_params = grid.best_params_
 
-
-gamma = 0.1
+tfidf = np.concatenate([tfidf_train, tfidf_val])
+y = np.concatenate([y_train, y_val])
+gamma = 1/ (tfidf.shape[1] * tfidf.var())
 clf = SVMClassifier(gamma=gamma, C=1)
 clf.fit(tfidf_train, y_train)
 y_pred = clf.predict(tfidf_val)
 print('Validation Accuracy: ', (y_pred == y_val).mean())
 
-export_predictions(X_test, model=clf, filename='outputs/SVMGauss.csv')
-
-
-from sklearn.svm import SVC
-clf = SVC()
-clf.fit(tfidf_train, y_train)
-y_pred = clf.predict(tfidf_val)
-(y_pred == y_val).mean()
-
-
-clf = LogisticRegression()
-clf.fit(X=tfidf_train, y=y_train, max_iter=100000, eps=5e-5)
-y_pred = clf.predict(X=tfidf_val)
-print('Training Accuracy: ', clf.get_accuracy_score(tfidf_train, y_train))
-print('Validation Accuracy: ', (y_pred == y_val).mean())
-
+clf = SVMClassifier(gamma=gamma, C=1)
+clf.fit(tfidf, y)
+export_predictions(tfidf_test, model=clf, filename='outputs/SVM_Gauss_tfidf.csv')
