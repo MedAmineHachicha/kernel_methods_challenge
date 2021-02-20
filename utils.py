@@ -70,11 +70,11 @@ def preprocess_TDA(X_train,X_test,base2idx = {'A':0,'C':1,'G':2,'T':3},e = np.ey
     return train_dgms, test_dgms
 
 def compute_persistence_diagrams(X):
-    simplices = []
+    ftrs = []
     for i,seq in tq.tqdm(enumerate(X),total = len(X)):
-        dgm, simplex_tree = seq2pd(seq) #compute persistence diagrams but only use simplices for Sliced Wasserstein Kernel
-        simplices.append(simplex_tree)
-    return simplices
+        dgm, dim_1_ftrs = seq2pd(seq) #compute persistence diagrams but only use 1-dimensional features for Sliced Wasserstein Kernel
+        ftrs.append(dim_1_ftrs)
+    return ftrs
 
 def seq2pd(seq):
     
@@ -84,7 +84,8 @@ def seq2pd(seq):
     #compute persistence diagram for dimensions 0 and 1
     #but only 1-dimensional features will be used for the kernel
     dgm = Rips_simplex_tree_sample.persistence()
-    return dgm, Rips_simplex_tree_sample
+    dim_1_ftrs = Rips_simplex_tree_sample.persistence_intervals_in_dimension(1)
+    return dgm, dim_1_ftrs
 
 def seq2point_cloud(seq):
     b = np.zeros((len(seq),4))
