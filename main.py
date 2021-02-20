@@ -90,7 +90,11 @@ from utils import preprocess_TDA
 train_dgms, test_dgms = preprocess_TDA(X_train,X_test)
 print('Train/val split')
 tda_train, tda_val, y_train, y_val = train_test_split(train_dgms, y_train, test_size=0.2, shuffle=True, random_state=111)
+
 # Definition of pipeline
+from sklearn.preprocessing   import MinMaxScaler
+from sklearn.pipeline        import Pipeline
+from sklearn.svm             import SVC
 pipe = Pipeline([("Separator", gd.representations.DiagramSelector(limit=np.inf, point_type="finite")),
                  ("Scaler",    gd.representations.DiagramScaler(scalers=[([0,1], MinMaxScaler())])),
                  ("TDA",       gd.representations.PersistenceImage()),
