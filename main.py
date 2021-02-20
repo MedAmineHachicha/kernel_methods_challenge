@@ -104,7 +104,7 @@ param =    [{"Scaler__use":         [False],
 
 from sklearn.model_selection import GridSearchCV
 
-clf = GridSearchCV(pipe, param, cv=5) #maybe put cv=3 for faster results 
+clf = GridSearchCV(pipe, param, cv=4) #maybe put cv=3 for faster results
 clf = clf.fit(tda_train, y_train)
 #print(model.best_params_)
 y_pred = clf.predict(tda_val)
