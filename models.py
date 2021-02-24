@@ -301,3 +301,46 @@ class KernelLogisticRegression():
     def get_accuracy_score(self, X, y):
         pred_labels = self.predict(X=X)
         return (pred_labels == y).mean()
+
+class KernelPCA():
+    
+    def __init__(self, nb_components, **args_kernel):
+        
+        self.kernel = args_kernel.get('name_kernel', None)
+        self.sigma = args_kernel.get('sigma', 1)
+        self.number_components = nb_components 
+        if self.kernel is not in {'gaussian'}:
+            raise ValueError('Please insert a valid kernel name')
+
+        pass
+
+    def fit_transform(self, X):
+        
+        K = get_kernel_gram_matrix(X)
+        w, v = np.linalg.eig(K)
+        w, v = get_wanted_eigenvectors_eigenvalues(w, v, self.number_components)
+        alpha = v/np.sqrt(w)
+        return K @ alpha.T
+    
+    @staticmethod
+    def get_wanted_eigenvectors_eigenvalues(w, v, k):
+        
+        L = [(w[i], v[i, :]) for i in range(w.shape[0])]
+        L = sorted(L, key=lambda x: x[0], reverse=True)
+        return np.array([L[i][0] for i in range(k)]), np.array([L[i][1] for i in range(k)])
+
+    @staticmethod
+    def get_kernel_gram_matrix(X):
+        
+        if self.kernel == 'gaussian':
+            # Faster computation of the gram matrix with gaussian kernel
+            # st= time.time()
+            pairwise_dists = squareform(pdist(X, 'sqeuclidean'))
+            K = np.exp(-pairwise_dists / (2 * np.square(sigma)))
+            # print(time.time()-st)
+            return K
+        raise ValueError('The kernel procvided is not recognised')
+
+        
+
+    
