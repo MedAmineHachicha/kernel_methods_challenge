@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
+from models import KernelPCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
@@ -46,9 +47,9 @@ def preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100):
     vectorizer = TfidfVectorizer(min_df=5)
     tfidf = vectorizer.fit_transform(X['sentences']).toarray()
 
-    pca = PCA(n_components=pca_components)
-    tfidf_ = pca.fit_transform(tfidf)
-
+    # pca = PCA(n_components=pca_components)
+    # tfidf_ = pca.fit_transform(tfidf)
+    pca = KernelPCA(nb_components=100, kernel_name='gaussian', sigma=1)
     scaler = MinMaxScaler()
     tfidf_ = scaler.fit_transform(tfidf_)
 

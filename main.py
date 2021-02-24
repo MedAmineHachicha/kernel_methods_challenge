@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 import numpy as np
+import argparse
 
 
 def main(feature_engineering='tfidf', model_used='SVM'):
@@ -103,83 +104,11 @@ def main(feature_engineering='tfidf', model_used='SVM'):
     export_predictions(test_dgms, model=clf, filename='outputs/SVM_TDA_kernel.csv')
 
 
+if __name__ == '__main__':
 
-############ Using Raw Sequences #############
-# X_train_paths = ['data/Xtr0.csv', 'data/Xtr1.csv', 'data/Xtr2.csv']
-# X_test_paths = ['data/Xte0.csv', 'data/Xte1.csv', 'data/Xte2.csv']
-# y_train_paths = ['data/Ytr0.csv', 'data/Ytr1.csv', 'data/Ytr2.csv']
-
-# X_train = read_data_pandas(paths=X_train_paths, delimiter=',')
-# X_test = read_data_pandas(paths=X_test_paths, delimiter=',')
-# y_train = read_data_pandas(paths=y_train_paths, delimiter=',')
-# y_train = y_train['Bound'].values.astype(float)
-
-# tfidf_train, tfidf_test = preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100)
-# tfidf_train, tfidf_val, y_train, y_val = train_test_split(tfidf_train, y_train,
-#                                                           test_size=0.2, shuffle=True, random_state=111)
-
-
-'''from sklearn.svm import SVC
-clf1 = SVC(gamma='scale', kernel='rbf')
-clf1.fit(tfidf_train, y_train)
-y_pred = clf1.predict(tfidf_val)
-(y_pred == y_val).mean()'''
-
-
-# param_grid = {'C' : [0.1, 1,10,100],
-#               'gamma' : [1,0.1,0.001,'auto', 'scale'],
-#               'kernel' : ['rbf']}
-
-# grid = GridSearchCV(SVC(),param_grid,refit = True, verbose=2, n_jobs=-1, scoring='accuracy', cv=4)
-# grid.fit(tfidf_train,y_train)
-
-# best_params = grid.best_params_
-
-# tfidf = np.concatenate([tfidf_train, tfidf_val])
-# y = np.concatenate([y_train, y_val])
-# gamma = 1/ (tfidf.shape[1] * tfidf.var())
-# clf = SVMClassifier(gamma=gamma, C=1)
-# clf.fit(tfidf_train, y_train)
-# y_pred = clf.predict(tfidf_val)
-# print('Validation Accuracy: ', (y_pred == y_val).mean())
-
-# clf = SVMClassifier(gamma=gamma, C=1)
-# clf.fit(tfidf, y)
-# export_predictions(tfidf_test, model=clf, filename='outputs/SVM_Gauss_tfidf.csv')
-
-
-
-#### TDA kernel : to be tested ####
-
-#!pip install gudhi 
-# import gudhi as gd
-# import gudhi.representations
-# from utils import preprocess_TDA
-
-# train_dgms, test_dgms = preprocess_TDA(X_train,X_test)
-# print('Train/val split')
-# tda_train, tda_val, y_train, y_val = train_test_split(train_dgms, y_train, test_size=0.2, shuffle=True, random_state=111)
-
-# # Definition of pipeline
-# from sklearn.preprocessing   import MinMaxScaler
-# from sklearn.pipeline        import Pipeline
-# from sklearn.svm             import SVC
-# pipe = Pipeline([("Separator", gd.representations.DiagramSelector(limit=np.inf, point_type="finite")),
-#                  ("Scaler",    gd.representations.DiagramScaler(scalers=[([0,1], MinMaxScaler())])),
-#                  ("TDA",       gd.representations.PersistenceImage()),
-#                  ("Estimator", SVC())])
-# param =    [{"Scaler__use":         [False],
-#              "TDA":                 [gd.representations.SlicedWassersteinKernel()], 
-#              "TDA__bandwidth":      [0.1, 1.0],
-#              "TDA__num_directions": [20],
-#              "Estimator":           [SVC(kernel="precomputed", gamma="auto")]},
-#            ]
-
-# from sklearn.model_selection import GridSearchCV
-
-# clf = GridSearchCV(pipe, param, cv=5) #maybe put cv=3 for faster results 
-# clf = clf.fit(tda_train, y_train)
-# #print(model.best_params_)
-# y_pred = clf.predict(tda_val)
-# print('Validation Accuracy: ', (y_pred == y_val).mean())
-# export_predictions(test_dgms, model=clf, filename='outputs/SVM_TDA_kernel.csv')
+  parser = argparse.ArgumentParser()
+  parser.add_argument("feature_engineering", help="Feature engineering technique", default='tfidf')
+  parser.add_argument('model_used', help='The model used to generate prediction', default='SVM')
+  args = parser.parse_args()
+  main(args.feature_engineering, args.model_used)
+  
