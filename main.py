@@ -7,7 +7,7 @@ import numpy as np
 import argparse
 
 
-def main(feature_engineering='tfidf', model_used='SVM'):
+def main(feature_engineering='tfidf', model_used='SVM', data_used='raw'):
 
   if feature_engineering == 'tfidf':
       X_train_paths = ['data/Xtr0.csv', 'data/Xtr1.csv', 'data/Xtr2.csv']
@@ -19,10 +19,10 @@ def main(feature_engineering='tfidf', model_used='SVM'):
       y_train = read_data_pandas(paths=y_train_paths, delimiter=',')
       y_train = y_train['Bound'].values.astype(float)
 
-      tfidf_train, tfidf_test = preprocess_tfidf(X_train, X_test,
+      X_train, X_test = preprocess_tfidf(X_train, X_test,
                                                  window_size=6,
                                                  pca_components=100)
-      X_train, X_val, y_train, y_val = train_test_split(tfidf_train, y_train,
+      X_train, X_val, y_train, y_val = train_test_split(X_train, y_train,
                                                                 test_size=0.2, shuffle=True,
                                                                  random_state=111)
   elif feature_engineering == 'TDA':
@@ -36,9 +36,9 @@ def main(feature_engineering='tfidf', model_used='SVM'):
     y_train = read_data_pandas(paths=y_train_paths, delimiter=',')
     y_train = y_train['Bound'].values.astype(float)
 
-    train_dgms, test_dgms = preprocess_TDA(X_train, X_test)
+    X_train, X_test = preprocess_TDA(X_train, X_test)
     print('Train/val split')
-    X_train, X_val, y_train, y_val = train_test_split(train_dgms, y_train,
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train,
                                                       test_size=0.2, shuffle=True, 
                                                       random_state=111)
     
@@ -64,14 +64,14 @@ def main(feature_engineering='tfidf', model_used='SVM'):
 
       export_predictions(X_test, model=clf, filename='outputs/LogRegPred.csv')
 
-  elif model_used == 'SVM'
+  elif model_used == 'SVM':
       X = np.concatenate([X_train, X_val])
       y = np.concatenate([y_train, y_val])
       if data_used == 'raw':
         gamma = 1/ (X.shape[1] * X.var())
       else:
         gamma = X_train.shape[1]
-      clf = SVMClassifier(gamma=gamma, C=0.1)
+      clf = SVMClassifier(gamma=gamma, kernel='rbf', C=0.1)
       clf.fit(X_train, y_train)
       y_pred = clf.predict(X_val)
       print('Validation Accuracy: ', (y_pred == y_val).mean())
@@ -107,8 +107,7 @@ def main(feature_engineering='tfidf', model_used='SVM'):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
-  parser.add_argument("feature_engineering", help="Feature engineering technique", default='tfidf')
-  parser.add_argument('model_used', help='The model used to generate prediction', default='SVM')
+  parser.add_argument("--feature_engineering", help="Feature engineering technique", default='tfidf')
+  parser.add_argument('--model_used', help='The model used to generate prediction', default='SVM')
   args = parser.parse_args()
   main(args.feature_engineering, args.model_used)
-  

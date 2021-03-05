@@ -49,10 +49,13 @@ def preprocess_tfidf(X_train, X_test, window_size=6, pca_components=100):
 
     # pca = PCA(n_components=pca_components)
     # tfidf_ = pca.fit_transform(tfidf)
-    pca = KernelPCA(nb_components=100, kernel_name='gaussian', sigma=1)
+    pca = KernelPCA(n_components=100, name_kernel='gaussian', sigma=1)
+    tfidf_ = pca.fit_transform(tfidf)
+    print('The shape of the tfidf matrix is: {}'.format(tfidf_.shape))
+    # print(tfidf_)
     scaler = MinMaxScaler()
     tfidf_ = scaler.fit_transform(tfidf_)
-
+    print('Ending -- tfidf preprocessing')
     return tfidf_[:n1], tfidf_[n1:]
 
 

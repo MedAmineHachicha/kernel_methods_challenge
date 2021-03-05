@@ -130,7 +130,8 @@ class SVMClassifier():
             return pred_probas
 
         except:
-            print('Please make sure the used kernel is gaussian.')
+            raise ValueError('The kernel is not yet implemented')
+            # print('Please make sure the used kernel is gaussian.')
 
     def predict(self, X):
         probas = self.predict_probas(X=X)
@@ -159,10 +160,8 @@ class WKRR():
 
         if self.kernel == 'gaussian':
             # Faster computation of the gram matrix with gaussian kernel
-            # st= time.time()
             pairwise_dists = squareform(pdist(X, 'sqeuclidean'))
             K = np.exp(-pairwise_dists / (2 * np.square(sigma)))
-            # print(time.time()-st)
             return K
 
     def fit(self, X, y, penalty, W=None, eps=1e-6, kernel_precomputed=False):
@@ -304,43 +303,52 @@ class KernelLogisticRegression():
 
 class KernelPCA():
     
-    def __init__(self, nb_components, **args_kernel):
+    def __init__(self, n_components, **args_kernel):
         
         self.kernel = args_kernel.get('name_kernel', None)
         self.sigma = args_kernel.get('sigma', 1)
-        self.number_components = nb_components 
-        if self.kernel is not in {'gaussian'}:
+        self.number_components = n_components 
+        if self.kernel not in {'gaussian'}:
             raise ValueError('Please insert a valid kernel name')
 
         pass
-
-    def fit_transform(self, X):
-        
-        K = get_kernel_gram_matrix(X)
-        w, v = np.linalg.eig(K)
-        w, v = get_wanted_eigenvectors_eigenvalues(w, v, self.number_components)
-        alpha = v/np.sqrt(w)
-        return K @ alpha.T
     
-    @staticmethod
-    def get_wanted_eigenvectors_eigenvalues(w, v, k):
+    # @staticmethod
+    def get_wanted_eigenvectors_eigenvalues(self, w, v, ):
         
         L = [(w[i], v[i, :]) for i in range(w.shape[0])]
         L = sorted(L, key=lambda x: x[0], reverse=True)
-        return np.array([L[i][0] for i in range(k)]), np.array([L[i][1] for i in range(k)])
+        return np.array([L[i][0] for i in range(self.number_components)]),\
+               np.array([L[i][1] for i in range(self.number_components)])
 
-    @staticmethod
-    def get_kernel_gram_matrix(X):
+    # @staticmethod
+    def get_kernel_gram_matrix(self, X):
         
         if self.kernel == 'gaussian':
             # Faster computation of the gram matrix with gaussian kernel
             # st= time.time()
             pairwise_dists = squareform(pdist(X, 'sqeuclidean'))
-            K = np.exp(-pairwise_dists / (2 * np.square(sigma)))
+            K = np.exp(-pairwise_dists / (2 * np.square(self.sigma)))
             # print(time.time()-st)
             return K
         raise ValueError('The kernel procvided is not recognised')
 
+    def fit_transform(self, X, eps=1e-6):
         
-
+        print('Begining -- computing gram_matrix')
+        K = self.get_kernel_gram_matrix(X)
+        print('Ending -- computing gram matrix')
+        w, v = np.linalg.eig(K)
+        w = np.array(list(map(lambda x: x.real if x.real > 0 else eps, w)))
+        v = np.real(v)
+        print('The shape of w is {}'.format(w.shape))
+        print(v)
+        print('Ending -- computing eigen values')
+        w, v = self.get_wanted_eigenvectors_eigenvalues(w, v)
+        print('Ending -- selecting the correct eigenvectors')
+        alpha = v/np.sqrt(w[:, None])
+        print(alpha)
+        return K @ alpha.T
     
+
+        
