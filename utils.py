@@ -76,9 +76,9 @@ def compute_persistence_diagrams(X):
         ftrs.append(dim_1_ftrs)
     return ftrs
 
-def seq2pd(seq):
+def seq2pd(seq, base2idx = {'A':0,'C':1,'G':2,'T':3},e = np.eye(4)):
     
-    b = seq2point_cloud(seq)
+    b = seq2point_cloud(seq, base2idx = {'A':0,'C':1,'G':2,'T':3},e = np.eye(4))
     skeleton = gd.RipsComplex(points = b, max_edge_length = 0.8)
     Rips_simplex_tree_sample = skeleton.create_simplex_tree(max_dimension = 2)
     #compute persistence diagram for dimensions 0 and 1
@@ -87,7 +87,7 @@ def seq2pd(seq):
     dim_1_ftrs = Rips_simplex_tree_sample.persistence_intervals_in_dimension(1)
     return dgm, dim_1_ftrs
 
-def seq2point_cloud(seq):
+def seq2point_cloud(seq, base2idx = {'A':0,'C':1,'G':2,'T':3},e = np.eye(4)):
     b = np.zeros((len(seq),4))
     for k,base in enumerate(seq):
         if k==0:

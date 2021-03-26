@@ -66,13 +66,14 @@ grid.fit(tfidf_train,y_train)
 
 best_params = grid.best_params_
 
-tfidf = np.concatenate([tfidf_train, tfidf_val])
-y = np.concatenate([y_train, y_val])
 gamma = 1/ (tfidf.shape[1] * tfidf.var())
 clf = SVMClassifier(gamma=gamma, C=1)
 clf.fit(tfidf_train, y_train)
 y_pred = clf.predict(tfidf_val)
 print('Validation Accuracy: ', (y_pred == y_val).mean())
+
+tfidf = np.concatenate([tfidf_train, tfidf_val])
+y = np.concatenate([y_train, y_val])
 
 clf = SVMClassifier(gamma=gamma, C=1)
 clf.fit(tfidf, y)
@@ -108,7 +109,7 @@ param =    [{"Scaler__use":         [False],
 
 from sklearn.model_selection import GridSearchCV
 
-clf = GridSearchCV(pipe, param, cv=4) #maybe put cv=3 for faster results
+clf = GridSearchCV(pipe, param, cv=3, verbose=2, n_jobs=1) #maybe put cv=3 for faster results
 clf = clf.fit(tda_train, y_train)
 #print(model.best_params_)
 y_pred = clf.predict(tda_val)
