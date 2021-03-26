@@ -396,6 +396,8 @@ class KernelPCA():
         centred_K = (np.eye(n) - U) @ K @ (np.eye(n) - U)
 
         w, v = np.linalg.eig(centred_K)
+        # We had some negative/complex eigen values even if the matrix is symmetric which 
+        # can mainly be due to some approximations made when computing the eigenvectors 
         w = np.array(list(map(lambda x: x.real if x.real > 0 else eps, w)))
         v = np.real(v)
         w, v = self.get_wanted_eigenvectors_eigenvalues(w, v)
