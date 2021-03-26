@@ -56,6 +56,81 @@ class LogisticRegression():
         return (pred_labels==y).mean()
 
 
+import cvxopt
+
+
+class SVM_custom_kernel:
+
+    def __init__(self, c=1, eps=1e-4):
+        self.alpha_ = None
+        self.c = c
+        self.eps = eps
+
+    def fit(self, kernel_train, labels):
+        n = len(labels)
+
+        # prepare matrices of dual problem for solving
+        diag = np.zeros((n, n))
+        np.fill_diagonal(diag, labels)
+
+        P = diag @ kernel_train @ diag
+        P = cvxopt.matrix(P)
+
+        Q = cvxopt.matrix(np.ones(n) * -1)
+
+        if self.c is None:
+            G = cvxopt.matrix(np.diag(np.ones(n) * -1))
+            h = cvxopt.matrix(np.zeros(n))
+        else:
+            G = cvxopt.matrix(np.vstack((np.diag(np.ones(n) * -1), np.identity(n))))
+            h = cvxopt.matrix(np.hstack((np.zeros(n), np.ones(n) * self.c)))
+
+        A = labels.T
+        A = A.astype('double')
+        A = cvxopt.matrix(A)
+        b = cvxopt.matrix(0.0)
+
+        # Solve QP problem using cvxopt
+        u = cvxopt.solvers.qp(P, Q, G, h, A, b)
+
+        # take Lagrange multipliers,
+        alpha = np.ravel(u['x'])
+
+        # Identify support vectors
+        sv = alpha > self.eps
+        ind = np.arange(len(alpha))[sv]
+
+        self.alpha_ = alpha[sv]
+        self.sv = np.argwhere(sv == True)
+        self.sv_label = labels[sv]
+
+        # Compute bias value
+        self.b = 0.0
+        for i in range(len(self.alpha_)):
+            self.b += self.sv_label[i]
+            self.b -= np.sum(self.alpha_ * self.sv_label[:, 0] * kernel_train[sv, ind[i]])
+        self.b /= len(self.alpha_)
+
+    def predict(self, kernel_test):
+
+        y_predict = np.zeros(kernel_test.shape[1])
+
+        for i in range(kernel_test.shape[1]):
+            y_predict[i] = sum(alpha * sv_label * kernel_test[sv, i] for alpha, sv, sv_label in
+                               zip(self.alpha_, self.sv, self.sv_label[:, 0]))
+        return y_predict + self.b
+
+        prediction = np.sign(y_predict + self.b)
+
+        return prediction
+
+    def predict_class(self, kernel_test):
+
+        prediction = np.array(self.predict(kernel_test) >= 0, dtype=int)
+        prediction[prediction == 0] = -1
+        return prediction
+
+
 class SVMClassifier():
 
     def __init__(self, C=1, kernel='rbf', gamma=0.1):
@@ -301,3 +376,34 @@ class KernelLogisticRegression():
     def get_accuracy_score(self, X, y):
         pred_labels = self.predict(X=X)
         return (pred_labels == y).mean()
+
+
+class KernelPCA():
+
+    def __init__(self, n_components):
+        self.number_components = n_components
+
+    # @staticmethod
+    def get_wanted_eigenvectors_eigenvalues(self, w, v, ):
+        L = [(w[i], v[i, :]) for i in range(w.shape[0])]
+        L = sorted(L, key=lambda x: x[0], reverse=True)
+        return np.array([L[i][0] for i in range(self.number_components)]), \
+               np.array([L[i][1] for i in range(self.number_components)])
+
+    def fit_transform(self, K, eps=1e-6):
+        n = K.shape[0]
+        U = (1 / n) * np.ones((n, n))
+        centred_K = (np.eye(n) - U) @ K @ (np.eye(n) - U)
+
+        w, v = np.linalg.eig(centred_K)
+        w = np.array(list(map(lambda x: x.real if x.real > 0 else eps, w)))
+        v = np.real(v)
+        w, v = self.get_wanted_eigenvectors_eigenvalues(w, v)
+
+        alpha = v / np.sqrt(w[:, None])
+        self.alpha = alpha
+
+        return K @ alpha.T
+
+    def transform(self, X):
+        return X @ self.alpha.T
